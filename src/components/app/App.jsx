@@ -21,30 +21,24 @@ export class App extends Component {
     largeImage: '',
   };
 
-  componentDidUpdate(prevProps, prevState) {
+  async componentDidUpdate(prevProps, prevState) {
     const { query, page } = this.state;
-    if (prevState.query !== query || prevState.page !== page) {
-      this.fetchImages(query, page);
-      this.setState({ loading: true });
-    }
+    if (prevState.query !== query || prevState.page !== page)
+      try {
+        const { hits, totalHits } = await Api.fetchGalleryImages(query, page);
+        this.setState({ loading: true });
+        this.setState(prevState => ({
+          images: [...prevState.images, ...hits],
+          ...hits,
+          totalHits: totalHits,
+        }));
+      } catch (error) {
+        this.setState({ error: true });
+        toast.error('Sorry, have some problem');
+      } finally {
+        this.setState({ loading: false });
+      }
   }
-
-  fetchImages = async (query, page) => {
-    try {
-      const { hits, totalHits } = await Api.fetchGalleryImages(query, page);
-
-      this.setState(prevState => ({
-        images: [...prevState.images, ...hits],
-        ...hits,
-        totalHits: totalHits,
-      }));
-    } catch (error) {
-      this.setState({ error: true });
-      toast.error('Sorry, have some problem');
-    } finally {
-      this.setState({ loading: false });
-    }
-  };
 
   toggleModal = () => {
     this.setState(({ showModal }) => ({ showModal: !showModal }));
@@ -71,7 +65,8 @@ export class App extends Component {
   };
 
   render() {
-    const { showModal, largeImage, images, loading, totalHits } = this.state;
+    const { showModal, largeImage, images, loading, totalHits, page } =
+      this.state;
     return (
       <Wrapper>
         <SearchBar onSubmit={this.handleSubmit} />
@@ -82,7 +77,9 @@ export class App extends Component {
 
         {loading && <Loader />}
 
-        {totalHits > 1 && <LoadMore onClick={this.handleLoadMore} />}
+        {page < Math.ceil(totalHits / 12) && (
+          <LoadMore onClick={this.handleLoadMore} />
+        )}
 
         <GlobalStyle />
       </Wrapper>
