@@ -16,7 +16,7 @@ export class App extends Component {
     page: 1,
     error: null,
     loading: false,
-    totalHits: 0,
+    isLoadMore: false,
     showModal: false,
     largeImage: '',
   };
@@ -25,12 +25,12 @@ export class App extends Component {
     const { query, page } = this.state;
     if (prevState.query !== query || prevState.page !== page)
       try {
-        const { hits, totalHits } = await Api.fetchGalleryImages(query, page);
         this.setState({ loading: true });
+        const { hits, totalHits } = await Api.fetchGalleryImages(query, page);
+
         this.setState(prevState => ({
           images: [...prevState.images, ...hits],
-          ...hits,
-          totalHits: totalHits,
+          isLoadMore: page < Math.ceil(totalHits / 12),
         }));
       } catch (error) {
         this.setState({ error: true });
@@ -65,8 +65,7 @@ export class App extends Component {
   };
 
   render() {
-    const { showModal, largeImage, images, loading, totalHits, page } =
-      this.state;
+    const { showModal, largeImage, images, loading, isLoadMore } = this.state;
     return (
       <Wrapper>
         <SearchBar onSubmit={this.handleSubmit} />
@@ -77,9 +76,7 @@ export class App extends Component {
 
         {loading && <Loader />}
 
-        {page < Math.ceil(totalHits / 12) && (
-          <LoadMore onClick={this.handleLoadMore} />
-        )}
+        {isLoadMore && <LoadMore onClick={this.handleLoadMore} />}
 
         <GlobalStyle />
       </Wrapper>
